@@ -171,8 +171,10 @@
   #bigview.over .bv-time{color:var(--red);animation:flash2 .6s infinite;}
   @keyframes flash2{0%,100%{opacity:1;}50%{opacity:.35;}}
   .bv-exit{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;}
-  .bv-controls{display:flex;gap:12px;margin-top:30px;}
-  .bv-controls .btn{min-width:120px;}
+  .bv-controls{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap;justify-content:center;}
+  .bv-controls .btn{min-width:96px;}
+  #bv-laps{margin-top:22px;width:100%;max-width:420px;max-height:32vh;overflow:auto;}
+  #bv-laps .lap{background:var(--card);}
 
   /* Toast */
   #toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
@@ -303,6 +305,7 @@
   <div class="bv-time" id="bv-time">00:00</div>
   <div class="bv-status" id="bv-status"></div>
   <div class="bv-controls" id="bv-controls"></div>
+  <div id="bv-laps"></div>
 </div>
 
 <!-- Toast -->
@@ -419,13 +422,16 @@ function lapStopwatch(){
   toast(`已記錄第 ${laps.length} 段`);
   beep(0.1,1318);
 }
-function renderLaps(){
-  const c=$('laps');
-  if(!laps.length){c.innerHTML='<div class="empty">尚無分段紀錄</div>';return;}
-  c.innerHTML=laps.map((lap,i)=>{
+function lapsHTML(){
+  if(!laps.length)return '<div class="empty">尚無分段紀錄</div>';
+  return laps.map((lap,i)=>{
     const prev=i>0?laps[i-1]:0;
     return `<div class="lap"><span class="n">第 ${i+1} 段</span><span class="t">${fmt(lap)}</span><span class="d">+${fmt(lap-prev)}</span></div>`;
   }).reverse().join('');
+}
+function renderLaps(){
+  $('laps').innerHTML=lapsHTML();
+  if(bigMode==='stopwatch')$('bv-laps').innerHTML=lapsHTML();
 }
 function resetStopwatch(){
   swRunning=false;cancelAnimationFrame(swRAF);
@@ -576,8 +582,8 @@ let bigMode=null, bigId=null;
 function openBig(mode,id){
   bigMode=mode;bigId=id||null;
   const bv=$('bigview');bv.classList.add('show');bv.classList.remove('over');
-  if(mode==='stopwatch'){$('bv-name').textContent=$('sw-name').value||'碼錶計時';renderSwDisplay();}
-  else if(mode==='seg'){const sg=findSeg(id);$('bv-name').textContent=sg?sg.name:'倒數計時';updateSegView(sg);}
+  if(mode==='stopwatch'){$('bv-name').textContent=$('sw-name').value||'碼錶計時';renderSwDisplay();$('bv-laps').innerHTML=lapsHTML();}
+  else if(mode==='seg'){const sg=findSeg(id);$('bv-name').textContent=sg?sg.name:'倒數計時';$('bv-laps').innerHTML='';updateSegView(sg);}
   updateBigControls();
   if(bv.requestFullscreen){bv.requestFullscreen().catch(()=>{});}
   try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('any').catch(()=>{});}catch(e){}
@@ -591,6 +597,7 @@ function updateBigControls(){
   const c=$('bv-controls');
   if(bigMode==='stopwatch'){
     c.innerHTML=`<button class="btn ${swRunning?'orange':'green'}" onclick="toggleStopwatch()">${swRunning?'⏸ 暫停':'▶ '+(swElapsed>0?'繼續':'開始')}</button>
+      <button class="btn blue" onclick="lapStopwatch()">⚑ 分段</button>
       <button class="btn red" onclick="resetStopwatch()">↺ 重設</button>`;
     $('bv-status').textContent=swRunning?'計時中…':'已暫停';
   }else if(bigMode==='seg'){
